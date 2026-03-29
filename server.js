@@ -196,6 +196,28 @@ const server = http.createServer((req, res) => {
                 </div>
 
                 <div class="route-card">
+                    <a href="/funkcionalnosti-streznika/">
+                        <div class="route-path">/funkcionalnosti-streznika/</div>
+                        <h3 class="route-title">Funkcionalnosti strežnika</h3>
+                        <p class="route-desc">
+                            HTML dokument z opisom strežniških funkcionalnosti, kot so
+                            JWT avtentikacija, upravljanje dogodkov, QR kode, obvestila in statistika.
+                        </p>
+                    </a>
+                </div>
+
+                <div class="route-card">
+                    <a href="/tehnicne-zahteve-streznika/">
+                        <div class="route-path">/tehnicne-zahteve-streznika/</div>
+                        <h3 class="route-title">Tehnične zahteve strežnika</h3>
+                        <p class="route-desc">
+                            Tekstovni dokument z uporabo tehnologij Express, JWT, bcrypt,
+                            knjižnice za QR generiranje in podatkovne baze.
+                        </p>
+                    </a>
+                </div>
+
+                <div class="route-card">
                     <a href="/img/uml_odjemalec.png">
                         <div class="route-path">/img/uml_odjemalec.png</div>
                         <h3 class="route-title">UML diagram</h3>
@@ -218,8 +240,18 @@ const server = http.createServer((req, res) => {
         sendFile(res, filePath, 'text/html; charset=utf-8');
     }
 
+    else if (pathname === '/funkcionalnosti-streznika/' || pathname === '/funkcionalnosti-streznika') {
+        const filePath = path.join(__dirname, 'pages', 'funkcionalnosti-streznika.html');
+        sendFile(res, filePath, 'text/html; charset=utf-8');
+    }
+
     else if (pathname === '/posebnosti/' || pathname === '/posebnosti') {
         const filePath = path.join(__dirname, 'texts', 'posebnosti.txt');
+        sendFile(res, filePath, 'text/plain; charset=utf-8');
+    }
+
+    else if (pathname === '/tehnicne-zahteve-streznika/' || pathname === '/tehnicne-zahteve-streznika') {
+        const filePath = path.join(__dirname, 'texts', 'tehnicne-zahteve-streznika.txt');
         sendFile(res, filePath, 'text/plain; charset=utf-8');
     }
 
