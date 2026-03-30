@@ -218,6 +218,28 @@ const server = http.createServer((req, res) => {
                 </div>
 
                 <div class="route-card">
+                    <a href="/podatkovni-model/">
+                        <div class="route-path">/podatkovni-model/</div>
+                        <h3 class="route-title">Podatkovni model</h3>
+                        <p class="route-desc">
+                            HTML dokument z entitetami, atributi, relacijami, dostopnostjo podatkov
+                            (naprava / strežnik / sinhronizacija) in ER diagramom.
+                        </p>
+                    </a>
+                </div>
+
+                <div class="route-card">
+                    <a href="/REST/">
+                        <div class="route-path">/REST/</div>
+                        <h3 class="route-title">REST API</h3>
+                        <p class="route-desc">
+                            Tekstovni dokument z naborom REST storitev in metod za podporo
+                            hibridne namizne aplikacije.
+                        </p>
+                    </a>
+                </div>
+
+                <div class="route-card">
                     <a href="/img/uml_odjemalec.png">
                         <div class="route-path">/img/uml_odjemalec.png</div>
                         <h3 class="route-title">UML diagram</h3>
@@ -252,6 +274,16 @@ const server = http.createServer((req, res) => {
 
     else if (pathname === '/tehnicne-zahteve-streznika/' || pathname === '/tehnicne-zahteve-streznika') {
         const filePath = path.join(__dirname, 'texts', 'tehnicne-zahteve-streznika.txt');
+        sendFile(res, filePath, 'text/plain; charset=utf-8');
+    }
+
+    else if (pathname === '/podatkovni-model/' || pathname === '/podatkovni-model') {
+        const filePath = path.join(__dirname, 'pages', 'podatkovni-model.html');
+        sendFile(res, filePath, 'text/html; charset=utf-8');
+    }
+
+    else if (pathname === '/REST/' || pathname === '/REST') {
+        const filePath = path.join(__dirname, 'texts', 'rest.txt');
         sendFile(res, filePath, 'text/plain; charset=utf-8');
     }
 
