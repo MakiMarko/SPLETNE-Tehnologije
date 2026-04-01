@@ -242,9 +242,19 @@ const server = http.createServer((req, res) => {
                 <div class="route-card">
                     <a href="/img/uml_odjemalec.png">
                         <div class="route-path">/img/uml_odjemalec.png</div>
-                        <h3 class="route-title">UML diagram</h3>
+                        <h3 class="route-title">UML diagram odjemalca</h3>
                         <p class="route-desc">
                             Neposreden dostop do slike UML diagrama primerov uporabe za odjemalski del aplikacije.
+                        </p>
+                    </a>
+                </div>
+
+                <div class="route-card">
+                    <a href="/img/uml_streznik.png">
+                        <div class="route-path">/img/uml_streznik.png</div>
+                        <h3 class="route-title">UML diagram strežnika</h3>
+                        <p class="route-desc">
+                            Neposreden dostop do slike UML diagrama primerov uporabe za strežniški del aplikacije.
                         </p>
                     </a>
                 </div>
@@ -289,6 +299,11 @@ const server = http.createServer((req, res) => {
 
     else if (pathname === '/img/uml_odjemalec.png') {
         const filePath = path.join(__dirname, 'img', 'uml_odjemalec.png');
+        sendFile(res, filePath, 'image/png');
+    }
+
+    else if (pathname === '/img/uml_streznik.png') {
+        const filePath = path.join(__dirname, 'img', 'uml_streznik.png');
         sendFile(res, filePath, 'image/png');
     }
 

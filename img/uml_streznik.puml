@@ -1,0 +1,111 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+left to right direction
+
+actor "Uporabnik" as user
+actor "Organizator" as org
+actor "Sistem\n(Scheduler)" as system
+
+rectangle "KajDogaja - strežniški del" {
+  
+  ' Avtentikacija
+  usecase "Registracija uporabnika" as UC1
+  usecase "Prijava uporabnika\n(JWT)" as UC2
+  usecase "Odjava uporabnika" as UC3
+  
+  ' Dogodki - uporabnik
+  usecase "Pregled dogodkov" as UC4
+  usecase "Filtriranje dogodkov\n(mesto, datum, kategorija)" as UC5
+  usecase "Iskanje dogodkov" as UC6
+  usecase "Ogled podrobnosti dogodka" as UC7
+  usecase "Pridobivanje QR kode" as UC8
+  
+  ' Prijave
+  usecase "Prijava na dogodek" as UC9
+  usecase "Odjava z dogodka" as UC10
+  usecase "Pregled mojih prijav" as UC11
+  
+  ' Dogodki - organizator
+  usecase "Ustvarjanje dogodka" as UC12
+  usecase "Urejanje dogodka" as UC13
+  usecase "Brisanje dogodka" as UC14
+  usecase "Pregled prijavljenih\nuporabnikov" as UC15
+  usecase "Statistika prijav" as UC16
+  
+  ' Obvestila
+  usecase "Pregled obvestil" as UC17
+  usecase "Označevanje obvestila\nkot prebranega" as UC18
+  usecase "Brisanje obvestila" as UC19
+  
+  ' Sistemske naloge
+  usecase "Generiranje QR kode\ndogodka" as UC20
+  usecase "Avtomatsko pošiljanje\nobvestil" as UC21
+  usecase "Validacija podatkov" as UC22
+  
+  ' Relacije uporabnik
+  user --> UC1
+  user --> UC2
+  user --> UC3
+  user --> UC4
+  user --> UC5
+  user --> UC6
+  user --> UC7
+  user --> UC8
+  user --> UC9
+  user --> UC10
+  user --> UC11
+  user --> UC17
+  user --> UC18
+  user --> UC19
+  
+  ' Relacije organizator
+  org --> UC1
+  org --> UC2
+  org --> UC3
+  org --> UC4
+  org --> UC5
+  org --> UC6
+  org --> UC7
+  org --> UC12
+  org --> UC13
+  org --> UC14
+  org --> UC15
+  org --> UC16
+  
+  ' Relacije sistem
+  system --> UC20
+  system --> UC21
+  system --> UC22
+  
+  ' Include/extend relacije
+  UC12 ..> UC20 : <<include>>
+  UC13 ..> UC22 : <<include>>
+  UC9 ..> UC22 : <<include>>
+  UC12 ..> UC22 : <<include>>
+  UC21 ..> UC17 : <<include>>
+  
+  ' Extend relacije
+  UC7 <.. UC8 : <<extend>>
+  UC4 <.. UC5 : <<extend>>
+  UC4 <.. UC6 : <<extend>>
+  
+  ' Generalizacija
+  org -up-|> user
+}
+
+note right of org
+  Organizator podeduje vse
+  funkcionalnosti uporabnika
+end note
+
+note bottom of system
+  Sistem izvaja periodične
+  naloge in validacijo
+end note
+
+@enduml

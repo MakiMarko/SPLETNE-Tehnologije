@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&amp;display=swap');
+      * { font-family: 'Outfit', sans-serif; }
+    </style>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="actorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ade80"/>
+      <stop offset="100%" style="stop-color:#22c55e"/>
+    </linearGradient>
+    <linearGradient id="systemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="900" height="650" fill="url(#bgGrad)"/>
+  <rect width="900" height="650" fill="url(#bgGrad)" opacity="0.5"/>
+  
+  <!-- Grid pattern -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <line x1="0" y1="0" x2="900" y2="650"/>
+    <line x1="0" y1="100" x2="900" y2="100"/>
+    <line x1="0" y1="200" x2="900" y2="200"/>
+    <line x1="0" y1="300" x2="900" y2="300"/>
+    <line x1="0" y1="400" x2="900" y2="400"/>
+    <line x1="0" y1="500" x2="900" y2="500"/>
+    <line x1="0" y1="600" x2="900" y2="600"/>
+    <line x1="0" y1="0" x2="0" y2="650"/>
+    <line x1="100" y1="0" x2="100" y2="650"/>
+    <line x1="200" y1="0" x2="200" y2="650"/>
+    <line x1="300" y1="0" x2="300" y2="650"/>
+    <line x1="400" y1="0" x2="400" y2="650"/>
+    <line x1="500" y1="0" x2="500" y2="650"/>
+    <line x1="600" y1="0" x2="600" y2="650"/>
+    <line x1="700" y1="0" x2="700" y2="650"/>
+    <line x1="800" y1="0" x2="800" y2="650"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="450" y="45" text-anchor="middle" font-size="28" font-weight="700" fill="#ffffff" filter="url(#glow)">UML Diagram - Funkcionalnosti strežnika</text>
+  <text x="450" y="70" text-anchor="middle" font-size="14" fill="#94a3b8">KajDogaja REST API</text>
+  
+  <!-- System Actor -->
+  <g transform="translate(100, 180)" filter="url(#shadow)">
+    <ellipse cx="0" cy="-30" rx="50" ry="15" fill="url(#systemGrad)" opacity="0.9"/>
+    <line x1="-50" y1="-15" x2="0" y2="25" stroke="url(#systemGrad)" stroke-width="4"/>
+    <line x1="50" y1="-15" x2="0" y2="25" stroke="url(#systemGrad)" stroke-width="4"/>
+    <ellipse cx="0" cy="95" rx="55" ry="20" fill="none" stroke="url(#systemGrad)" stroke-width="4"/>
+    <text x="0" y="140" text-anchor="middle" font-size="16" font-weight="600" fill="#60a5fa">Sistem</text>
+  </g>
+  
+  <!-- User Actor -->
+  <g transform="translate(800, 180)" filter="url(#shadow)">
+    <ellipse cx="0" cy="-30" rx="50" ry="15" fill="url(#actorGrad)" opacity="0.9"/>
+    <line x1="-50" y1="-15" x2="0" y2="25" stroke="url(#actorGrad)" stroke-width="4"/>
+    <line x1="50" y1="-15" x2="0" y2="25" stroke="url(#actorGrad)" stroke-width="4"/>
+    <ellipse cx="0" cy="95" rx="55" ry="20" fill="none" stroke="url(#actorGrad)" stroke-width="4"/>
+    <text x="0" y="140" text-anchor="middle" font-size="16" font-weight="600" fill="#4ade80">Uporabnik</text>
+  </g>
+  
+  <!-- Organizer Actor -->
+  <g transform="translate(800, 420)" filter="url(#shadow)">
+    <ellipse cx="0" cy="-30" rx="55" ry="15" fill="url(#actorGrad)" opacity="0.9"/>
+    <line x1="-55" y1="-15" x2="0" y2="25" stroke="url(#actorGrad)" stroke-width="4"/>
+    <line x1="55" y1="-15" x2="0" y2="25" stroke="url(#actorGrad)" stroke-width="4"/>
+    <ellipse cx="0" cy="95" rx="60" ry="20" fill="none" stroke="url(#actorGrad)" stroke-width="4"/>
+    <text x="0" y="140" text-anchor="middle" font-size="16" font-weight="600" fill="#4ade80">Organizator</text>
+  </g>
+  
+  <!-- Use Cases - System -->
+  <g transform="translate(250, 150)">
+    <ellipse cx="0" cy="0" rx="90" ry="35" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">JWT Avtentikacija</text>
+  </g>
+  <g transform="translate(420, 150)">
+    <ellipse cx="0" cy="0" rx="80" ry="35" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">QR Kode</text>
+  </g>
+  <g transform="translate(250, 250)">
+    <ellipse cx="0" cy="0" rx="90" ry="35" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">Iskanje/Filtriranje</text>
+  </g>
+  <g transform="translate(420, 250)">
+    <ellipse cx="0" cy="0" rx="80" ry="35" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">Obvestila</text>
+  </g>
+  <g transform="translate(335, 350)">
+    <ellipse cx="0" cy="0" rx="90" ry="35" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">Statistika prijav</text>
+  </g>
+  
+  <!-- Use Cases - User -->
+  <g transform="translate(580, 150)">
+    <ellipse cx="0" cy="0" rx="70" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Registracija</text>
+  </g>
+  <g transform="translate(680, 150)">
+    <ellipse cx="0" cy="0" rx="70" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Prijava</text>
+  </g>
+  <g transform="translate(580, 230)">
+    <ellipse cx="0" cy="0" rx="70" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Pregled dogodkov</text>
+  </g>
+  <g transform="translate(680, 230)">
+    <ellipse cx="0" cy="0" rx="70" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Iskanje dogodkov</text>
+  </g>
+  <g transform="translate(630, 310)">
+    <ellipse cx="0" cy="0" rx="80" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Prijavi na dogodek</text>
+  </g>
+  
+  <!-- Use Cases - Organizer -->
+  <g transform="translate(630, 450)">
+    <ellipse cx="0" cy="0" rx="80" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Ustvari dogodek</text>
+  </g>
+  <g transform="translate(730, 450)">
+    <ellipse cx="0" cy="0" rx="70" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Uredi dogodek</text>
+  </g>
+  <g transform="translate(630, 520)">
+    <ellipse cx="0" cy="0" rx="70" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Izbriši dogodek</text>
+  </g>
+  <g transform="translate(730, 520)">
+    <ellipse cx="0" cy="0" rx="90" ry="30" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">Pregled prijav</text>
+  </g>
+  
+  <!-- Lines from actors to use cases -->
+  <g stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.6" fill="none">
+    <line x1="100" y1="215" x2="250" y2="185"/>
+    <line x1="100" y1="215" x2="330" y2="185"/>
+    <line x1="100" y1="285" x2="250" y2="250"/>
+    <line x1="100" y1="285" x2="420" y2="250"/>
+    <line x1="100" y1="355" x2="335" y2="350"/>
+  </g>
+  
+  <g stroke="#22c55e" stroke-width="1.5" stroke-opacity="0.6" fill="none">
+    <line x1="800" y1="215" x2="680" y2="180"/>
+    <line x1="800" y1="215" x2="580" y2="180"/>
+    <line x1="800" y1="255" x2="580" y2="230"/>
+    <line x1="800" y1="255" x2="680" y2="230"/>
+    <line x1="800" y1="300" x2="630" y2="310"/>
+  </g>
+  
+  <g stroke="#22c55e" stroke-width="1.5" stroke-opacity="0.6" fill="none">
+    <line x1="800" y1="485" x2="630" y2="480"/>
+    <line x1="800" y1="485" x2="730" y2="480"/>
+    <line x1="800" y1="545" x2="630" y2="520"/>
+    <line x1="800" y1="545" x2="730" y2="520"/>
+  </g>
+  
+  <!-- Legend / Notes -->
+  <g transform="translate(50, 580)">
+    <rect x="0" y="0" width="800" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" opacity="0.8"/>
+    <text x="20" y="20" font-size="12" fill="#94a3b8">●</text>
+    <text x="35" y="20" font-size="12" fill="#e2e8f0">Uporabnik in Organizator podeduje vse funkcionalnosti uporabnika</text>
+    <text x="20" y="38" font-size="12" fill="#94a3b8">●</text>
+    <text x="35" y="38" font-size="12" fill="#e2e8f0">Organizator ima dodatne funkcionalnosti za upravljanje dogodkov</text>
+  </g>
+</svg>
