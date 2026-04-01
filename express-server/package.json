@@ -1,7 +1,7 @@
 {
-  "name": "kajdogaja-api",
+  "name": "kajdogaja-server",
   "version": "1.0.0",
-  "description": "KajDogaja REST API strežnik - Express.js",
+  "description": "KajDogaja – Strezniski del (Express.js REST API)",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
