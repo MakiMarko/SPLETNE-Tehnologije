@@ -5,6 +5,7 @@ const { PORT } = require('./config');
 // Inicializacija baze (ustvari tabele in vstavi začetne podatke)
 require('./db/database');
 
+const oauthRoutes = require('./routes/oauth');
 const authRoutes = require('./routes/auth');
 const eventsRoutes = require('./routes/events');
 const registrationsRoutes = require('./routes/registrations');
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 });
 
 // Poti
+app.use('/oauth', oauthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/events/:id/registrations', registrationsRoutes);
@@ -43,6 +45,10 @@ app.get('/', (req, res) => {
     verzija: '1.0.0',
     opis: 'REST API za upravljanje lokalnih dogodkov',
     endpoints: {
+      oauth2: {
+        'POST /oauth/token': 'Pridobi access_token (grant_type: password | refresh_token)',
+        'POST /oauth/revoke': 'Prekliči refresh_token (RFC 7009)'
+      },
       avtentikacija: {
         'POST /api/auth/register': 'Registracija novega uporabnika',
         'POST /api/auth/login': 'Prijava in pridobitev JWT žetona',

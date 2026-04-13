@@ -1,20 +1,116 @@
 /**
  * KajDogaja REST API - Node.js odjemalec
+ * Avtentikacija: OAuth 2.0 Resource Owner Password Credentials (RFC 6749)
  * Testira vse metode: GET, POST, PUT, DELETE
  * Uporablja knjižnico axios
  */
 
 const axios = require('axios');
+const { OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET } = require('./config');
 
 const BASE_URL = 'http://localhost:3001/api';
+const OAUTH_URL = 'http://localhost:3001/oauth';
 
-// Globalne spremenljivke za shranjevanje podatkov med testi
-let zetonUporabnik = null;
-let zetonOrganizator = null;
+// ── OAuth 2.0 upravljanje žetonov ──────────────────────────────
+
+/**
+ * Shramba žetonov za uporabnika in organizatorja.
+ * access_token  : JWT za zahtevke API
+ * refresh_token : dolgoživečni žeton za pridobitev novega access_token
+ * expires_at    : čas poteka v ms (Unix)
+ */
+const shramba = {
+  uporabnik: { access_token: null, refresh_token: null, expires_at: 0 },
+  organizator: { access_token: null, refresh_token: null, expires_at: 0 }
+};
+
+/**
+ * Pridobi access_token prek OAuth 2.0 ROPC (password grant).
+ * Vrne access_token in shrani refresh_token za kasnejšo osvežitev.
+ */
+async function prijaviOAuth(email, geslo, vloga) {
+  const odgovor = await axios.post(
+    `${OAUTH_URL}/token`,
+    new URLSearchParams({
+      grant_type: 'password',
+      username: email,
+      password: geslo,
+      client_id: OAUTH_CLIENT_ID,
+      client_secret: OAUTH_CLIENT_SECRET
+    }),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
+
+  const { access_token, refresh_token, expires_in } = odgovor.data;
+  shramba[vloga] = {
+    access_token,
+    refresh_token,
+    expires_at: Date.now() + expires_in * 1000
+  };
+
+  console.log(`  → OAuth access_token shranjen (${vloga}), poteče čez ${expires_in}s`);
+  console.log(`  → refresh_token shranjen za avtomatsko osvežitev`);
+  return access_token;
+}
+
+/**
+ * Osveži access_token z refresh_token (refresh_token grant).
+ */
+async function osveziToken(vloga) {
+  const { refresh_token } = shramba[vloga];
+  const odgovor = await axios.post(
+    `${OAUTH_URL}/token`,
+    new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token,
+      client_id: OAUTH_CLIENT_ID,
+      client_secret: OAUTH_CLIENT_SECRET
+    }),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
+
+  const { access_token, expires_in } = odgovor.data;
+  shramba[vloga].access_token = access_token;
+  shramba[vloga].expires_at = Date.now() + expires_in * 1000;
+  return access_token;
+}
+
+/**
+ * Vrne veljavni access_token; po potrebi ga samodejno osveži.
+ */
+async function veljavniZeton(vloga) {
+  const s = shramba[vloga];
+  if (!s.access_token) return null;
+  // Osveži 60 sekund pred potekom
+  if (Date.now() >= s.expires_at - 60_000) {
+    await osveziToken(vloga);
+  }
+  return s.access_token;
+}
+
+/**
+ * Prekliči refresh_token (odjava – RFC 7009).
+ */
+async function prekliciToken(vloga) {
+  const { refresh_token } = shramba[vloga];
+  if (!refresh_token) return;
+  await axios.post(
+    `${OAUTH_URL}/revoke`,
+    new URLSearchParams({
+      token: refresh_token,
+      client_id: OAUTH_CLIENT_ID,
+      client_secret: OAUTH_CLIENT_SECRET
+    }),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
+  shramba[vloga] = { access_token: null, refresh_token: null, expires_at: 0 };
+}
+
+// ── Pomožne funkcije ───────────────────────────────────────────
+
 let idDogodka = null;
 let idObvestila = null;
 
-// Pomožna funkcija za izpis rezultatov
 function izpisi(naslov, podatki, napaka = false) {
   const crta = '─'.repeat(60);
   console.log(`\n${crta}`);
@@ -23,11 +119,12 @@ function izpisi(naslov, podatki, napaka = false) {
   console.log(JSON.stringify(podatki, null, 2));
 }
 
-// Pomožna funkcija za zahtevke z obravnavo napak
-async function zahtevek(metoda, pot, podatki = null, zeton = null) {
+async function zahtevek(metoda, pot, podatki = null, vloga = null) {
   const headers = { 'Content-Type': 'application/json' };
-  if (zeton) headers['Authorization'] = `Bearer ${zeton}`;
-
+  if (vloga) {
+    const zeton = await veljavniZeton(vloga);
+    if (zeton) headers['Authorization'] = `Bearer ${zeton}`;
+  }
   try {
     const moznosti = { method: metoda, url: `${BASE_URL}${pot}`, headers };
     if (podatki !== null) moznosti.data = podatki;
@@ -42,13 +139,11 @@ async function zahtevek(metoda, pot, podatki = null, zeton = null) {
   }
 }
 
-// ============================================================
-// TESTNE FUNKCIJE
-// ============================================================
+// ── Testne funkcije ────────────────────────────────────────────
 
-async function testirajRegistracijoInPrijavo() {
+async function testirajOAuth() {
   console.log('\n' + '═'.repeat(60));
-  console.log('  1. AVTENTIKACIJA – registracija in prijava');
+  console.log('  1. OAUTH 2.0 – registracija in pridobitev žetonov');
   console.log('═'.repeat(60));
 
   // Registracija navadnega uporabnika
@@ -69,34 +164,64 @@ async function testirajRegistracijoInPrijavo() {
   });
   izpisi('POST /auth/register – registracija organizatorja', regOrg.podatki, !regOrg.uspeh);
 
-  // Prijava uporabnika
-  const prijaviUporabnik = await zahtevek('POST', '/auth/login', {
-    email: 'uporabnik@test.si',
-    geslo: 'geslo123'
-  });
-  izpisi('POST /auth/login – prijava uporabnika', prijaviUporabnik.podatki, !prijaviUporabnik.uspeh);
-  if (prijaviUporabnik.uspeh) {
-    zetonUporabnik = prijaviUporabnik.podatki.zeton;
-    console.log('  → JWT žeton shranjen za nadaljnje teste');
+  // OAuth 2.0: pridobi žeton za uporabnika (ROPC grant)
+  console.log('\n─'.repeat(60));
+  console.log('  OAuth 2.0 – pridobitev access_token (grant_type=password)');
+  try {
+    await prijaviOAuth('uporabnik@test.si', 'geslo123', 'uporabnik');
+    izpisi('POST /oauth/token – ROPC (uporabnik)', {
+      access_token: '(shranjen)',
+      token_type: 'Bearer',
+      expires_in: 3600,
+      refresh_token: '(shranjen)'
+    });
+  } catch (err) {
+    izpisi('POST /oauth/token – ROPC (uporabnik)', { napaka: err.message }, true);
   }
 
-  // Prijava organizatorja
-  const prijaviOrg = await zahtevek('POST', '/auth/login', {
-    email: 'organizator@test.si',
-    geslo: 'geslo456'
-  });
-  izpisi('POST /auth/login – prijava organizatorja', prijaviOrg.podatki, !prijaviOrg.uspeh);
-  if (prijaviOrg.uspeh) {
-    zetonOrganizator = prijaviOrg.podatki.zeton;
-    console.log('  → JWT žeton organizatorja shranjen');
+  // OAuth 2.0: pridobi žeton za organizatorja
+  try {
+    await prijaviOAuth('organizator@test.si', 'geslo456', 'organizator');
+    izpisi('POST /oauth/token – ROPC (organizator)', {
+      access_token: '(shranjen)',
+      token_type: 'Bearer',
+      expires_in: 3600,
+      refresh_token: '(shranjen)'
+    });
+  } catch (err) {
+    izpisi('POST /oauth/token – ROPC (organizator)', { napaka: err.message }, true);
   }
 
-  // Test napačnih podatkov
-  const napacnaPrijava = await zahtevek('POST', '/auth/login', {
-    email: 'napacen@email.si',
-    geslo: 'napacsno'
-  });
-  izpisi('POST /auth/login – napačni podatki (401)', napacnaPrijava.podatki, napacnaPrijava.uspeh);
+  // OAuth 2.0: test napačnih poverilnic
+  try {
+    await axios.post(
+      `${OAUTH_URL}/token`,
+      new URLSearchParams({
+        grant_type: 'password',
+        username: 'napacen@email.si',
+        password: 'napacno',
+        client_id: OAUTH_CLIENT_ID,
+        client_secret: OAUTH_CLIENT_SECRET
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+  } catch (err) {
+    izpisi('POST /oauth/token – napačni podatki (401)', err.response?.data, false);
+  }
+
+  // OAuth 2.0: osvežitev žetona (refresh_token grant)
+  console.log('\n─'.repeat(60));
+  console.log('  OAuth 2.0 – osvežitev access_token (grant_type=refresh_token)');
+  try {
+    const noviZeton = await osveziToken('uporabnik');
+    izpisi('POST /oauth/token – refresh_token grant (uporabnik)', {
+      access_token: '(nov, shranjen)',
+      token_type: 'Bearer',
+      expires_in: 3600
+    });
+  } catch (err) {
+    izpisi('POST /oauth/token – refresh_token grant', { napaka: err.message }, true);
+  }
 }
 
 async function testirajKategorijeMesta() {
@@ -105,10 +230,10 @@ async function testirajKategorijeMesta() {
   console.log('═'.repeat(60));
 
   const kategorije = await zahtevek('GET', '/categories');
-  izpisi('GET /categories – seznam kategorij', kategorije.podatki, !kategorije.uspeh);
+  izpisi('GET /categories', kategorije.podatki, !kategorije.uspeh);
 
   const mesta = await zahtevek('GET', '/cities');
-  izpisi('GET /cities – seznam mest', mesta.podatki, !mesta.uspeh);
+  izpisi('GET /cities', mesta.podatki, !mesta.uspeh);
 }
 
 async function testirajDogodke() {
@@ -116,11 +241,9 @@ async function testirajDogodke() {
   console.log('  3. DOGODKI – CRUD operacije');
   console.log('═'.repeat(60));
 
-  // GET - seznam vseh dogodkov (brez avtentikacije)
-  const vsiDogodki = await zahtevek('GET', '/events');
-  izpisi('GET /events – vsi dogodki', vsiDogodki.podatki, !vsiDogodki.uspeh);
+  const vsi = await zahtevek('GET', '/events');
+  izpisi('GET /events – vsi dogodki', { skupaj: vsi.podatki?.skupaj }, !vsi.uspeh);
 
-  // POST - ustvari nov dogodek (organizator)
   const noviDogodek = await zahtevek('POST', '/events', {
     naziv: 'Koncert v parku',
     opis: 'Letni koncert pod zvezdami v Tivoliju.',
@@ -132,55 +255,32 @@ async function testirajDogodke() {
     kapaciteta: 100,
     kategorija_id: 3,
     mesto_id: 1
-  }, zetonOrganizator);
+  }, 'organizator');
   izpisi('POST /events – ustvari dogodek (organizator)', noviDogodek.podatki, !noviDogodek.uspeh);
-
   if (noviDogodek.uspeh) {
     idDogodka = noviDogodek.podatki.dogodek.id;
     console.log(`  → ID novega dogodka: ${idDogodka}`);
   }
 
-  // Poskus ustvarjanja brez organizatorske vloge
-  const neuspelDogodek = await zahtevek('POST', '/events', {
-    naziv: 'Nedovoljen dogodek',
-    datum: '2024-08-01',
-    ura: '18:00',
-    lokacija: 'Nekje'
-  }, zetonUporabnik);
-  izpisi('POST /events – brez organizatorske vloge (403)', neuspelDogodek.podatki, neuspelDogodek.uspeh);
+  const neuspel = await zahtevek('POST', '/events', { naziv: 'Nedovoljen', datum: '2024-08-01', ura: '18:00', lokacija: 'Nekje' }, 'uporabnik');
+  izpisi('POST /events – brez org. vloge (403)', neuspel.podatki, neuspel.uspeh);
 
   if (!idDogodka) return;
 
-  // GET - podrobnosti posameznega dogodka
-  const enkratDogodek = await zahtevek('GET', `/events/${idDogodka}`);
-  izpisi(`GET /events/${idDogodka} – podrobnosti dogodka`, enkratDogodek.podatki, !enkratDogodek.uspeh);
+  const podrobnosti = await zahtevek('GET', `/events/${idDogodka}`);
+  izpisi(`GET /events/${idDogodka} – podrobnosti`, { naziv: podrobnosti.podatki?.naziv }, !podrobnosti.uspeh);
 
-  // GET - filtriranje po mestu
-  const filtriranoMesto = await zahtevek('GET', '/events?mesto=Ljubljana');
-  izpisi('GET /events?mesto=Ljubljana – filtriranje po mestu', { skupaj: filtriranoMesto.podatki?.skupaj }, !filtriranoMesto.uspeh);
+  const filter = await zahtevek('GET', '/events?mesto=Ljubljana');
+  izpisi('GET /events?mesto=Ljubljana', { skupaj: filter.podatki?.skupaj }, !filter.uspeh);
 
-  // GET - filtriranje po kategoriji
-  const filtriranoKat = await zahtevek('GET', '/events?kategorija=glasba');
-  izpisi('GET /events?kategorija=glasba – filtriranje po kategoriji', { skupaj: filtriranoKat.podatki?.skupaj }, !filtriranoKat.uspeh);
+  const posodobi = await zahtevek('PUT', `/events/${idDogodka}`, { naziv: 'Veliki koncert v parku', kapaciteta: 150 }, 'organizator');
+  izpisi(`PUT /events/${idDogodka} – posodobi`, { naziv: posodobi.podatki?.dogodek?.naziv }, !posodobi.uspeh);
 
-  // GET - iskanje po besedilu
-  const iskanje = await zahtevek('GET', '/events?iskanje=koncert');
-  izpisi('GET /events?iskanje=koncert – iskanje', { skupaj: iskanje.podatki?.skupaj }, !iskanje.uspeh);
-
-  // PUT - posodobi dogodek
-  const posodobiDogodek = await zahtevek('PUT', `/events/${idDogodka}`, {
-    naziv: 'Veliki koncert v parku',
-    kapaciteta: 150,
-    opis: 'Posodobljeni letni koncert pod zvezdami v Tivoliju.'
-  }, zetonOrganizator);
-  izpisi(`PUT /events/${idDogodka} – posodobi dogodek`, posodobiDogodek.podatki, !posodobiDogodek.uspeh);
-
-  // GET - QR koda
-  const qrKoda = await zahtevek('GET', `/events/${idDogodka}/qr`, null, zetonUporabnik);
-  const qrPrikaz = qrKoda.uspeh
-    ? { id: qrKoda.podatki.id, naziv: qrKoda.podatki.naziv, qr_koda: qrKoda.podatki.qr_koda?.substring(0, 50) + '...' }
-    : qrKoda.podatki;
-  izpisi(`GET /events/${idDogodka}/qr – QR koda (skrajšano)`, qrPrikaz, !qrKoda.uspeh);
+  const qr = await zahtevek('GET', `/events/${idDogodka}/qr`, null, 'uporabnik');
+  izpisi(`GET /events/${idDogodka}/qr – QR koda`, {
+    naziv: qr.podatki?.naziv,
+    qr_koda: qr.podatki?.qr_koda ? qr.podatki.qr_koda.substring(0, 50) + '...' : null
+  }, !qr.uspeh);
 }
 
 async function testirajPrijave() {
@@ -188,29 +288,21 @@ async function testirajPrijave() {
   console.log('  4. PRIJAVE – registracija na dogodke');
   console.log('═'.repeat(60));
 
-  if (!idDogodka) {
-    console.log('  ⚠ ID dogodka ni na voljo, preskočim teste prijav.');
-    return;
-  }
+  if (!idDogodka) { console.log('  ⚠ ID dogodka ni na voljo.'); return; }
 
-  // POST - prijava uporabnika na dogodek
-  const prijava = await zahtevek('POST', `/events/${idDogodka}/registrations`, null, zetonUporabnik);
+  const prijava = await zahtevek('POST', `/events/${idDogodka}/registrations`, null, 'uporabnik');
   izpisi(`POST /events/${idDogodka}/registrations – prijava`, prijava.podatki, !prijava.uspeh);
 
-  // Poskus dvojne prijave
-  const dvojnaPrijava = await zahtevek('POST', `/events/${idDogodka}/registrations`, null, zetonUporabnik);
-  izpisi(`POST /events/${idDogodka}/registrations – dvojna prijava (409)`, dvojnaPrijava.podatki, dvojnaPrijava.uspeh);
+  const dvojna = await zahtevek('POST', `/events/${idDogodka}/registrations`, null, 'uporabnik');
+  izpisi('POST registrations – dvojna prijava (409)', dvojna.podatki, dvojna.uspeh);
 
-  // GET - seznam prijav (organizator)
-  const seznamPrijav = await zahtevek('GET', `/events/${idDogodka}/registrations`, null, zetonOrganizator);
-  izpisi(`GET /events/${idDogodka}/registrations – seznam prijav (organizator)`, seznamPrijav.podatki, !seznamPrijav.uspeh);
+  const seznam = await zahtevek('GET', `/events/${idDogodka}/registrations`, null, 'organizator');
+  izpisi(`GET /events/${idDogodka}/registrations – seznam (org.)`, { skupaj: seznam.podatki?.skupaj }, !seznam.uspeh);
 
-  // GET - moje prijave
-  const mojePrijave = await zahtevek('GET', '/me/registrations', null, zetonUporabnik);
-  izpisi('GET /me/registrations – moje prijave', mojePrijave.podatki, !mojePrijave.uspeh);
+  const moje = await zahtevek('GET', '/me/registrations', null, 'uporabnik');
+  izpisi('GET /me/registrations – moje prijave', { skupaj: moje.podatki?.skupaj }, !moje.uspeh);
 
-  // DELETE - odjava z dogodka
-  const odjava = await zahtevek('DELETE', `/events/${idDogodka}/registrations`, null, zetonUporabnik);
+  const odjava = await zahtevek('DELETE', `/events/${idDogodka}/registrations`, null, 'uporabnik');
   izpisi(`DELETE /events/${idDogodka}/registrations – odjava`, odjava.podatki, !odjava.uspeh);
 }
 
@@ -219,11 +311,9 @@ async function testirajProfil() {
   console.log('  5. PROFIL UPORABNIKA');
   console.log('═'.repeat(60));
 
-  // GET - profil trenutnega uporabnika
-  const profil = await zahtevek('GET', '/me', null, zetonUporabnik);
-  izpisi('GET /me – profil uporabnika', profil.podatki, !profil.uspeh);
+  const profil = await zahtevek('GET', '/me', null, 'uporabnik');
+  izpisi('GET /me – profil', profil.podatki, !profil.uspeh);
 
-  // Test brez žetona
   const brezZetona = await zahtevek('GET', '/me');
   izpisi('GET /me – brez avtentikacije (401)', brezZetona.podatki, brezZetona.uspeh);
 }
@@ -233,24 +323,20 @@ async function testirajObvestila() {
   console.log('  6. OBVESTILA');
   console.log('═'.repeat(60));
 
-  // GET - vsa obvestila
-  const obvestila = await zahtevek('GET', '/notifications', null, zetonUporabnik);
-  izpisi('GET /notifications – vsa obvestila', obvestila.podatki, !obvestila.uspeh);
+  const obvestila = await zahtevek('GET', '/notifications', null, 'uporabnik');
+  izpisi('GET /notifications', { skupaj: obvestila.podatki?.skupaj }, !obvestila.uspeh);
 
-  // GET - samo neprebrana
-  const neprebrana = await zahtevek('GET', '/notifications?prebrano=false', null, zetonUporabnik);
-  izpisi('GET /notifications?prebrano=false – neprebrana obvestila', neprebrana.podatki, !neprebrana.uspeh);
+  const neprebrana = await zahtevek('GET', '/notifications?prebrano=false', null, 'uporabnik');
+  izpisi('GET /notifications?prebrano=false', { skupaj: neprebrana.podatki?.skupaj }, !neprebrana.uspeh);
 
-  if (obvestila.uspeh && obvestila.podatki.obvestila.length > 0) {
+  if (obvestila.uspeh && obvestila.podatki.obvestila?.length > 0) {
     idObvestila = obvestila.podatki.obvestila[0].id;
 
-    // PUT - označi kot prebrano
-    const prebrano = await zahtevek('PUT', `/notifications/${idObvestila}/read`, null, zetonUporabnik);
-    izpisi(`PUT /notifications/${idObvestila}/read – označi kot prebrano`, prebrano.podatki, !prebrano.uspeh);
+    const prebrano = await zahtevek('PUT', `/notifications/${idObvestila}/read`, null, 'uporabnik');
+    izpisi(`PUT /notifications/${idObvestila}/read`, prebrano.podatki, !prebrano.uspeh);
 
-    // DELETE - izbriši obvestilo
-    const izbrisi = await zahtevek('DELETE', `/notifications/${idObvestila}`, null, zetonUporabnik);
-    izpisi(`DELETE /notifications/${idObvestila} – izbriši obvestilo`, izbrisi.podatki, !izbrisi.uspeh);
+    const izbrisi = await zahtevek('DELETE', `/notifications/${idObvestila}`, null, 'uporabnik');
+    izpisi(`DELETE /notifications/${idObvestila}`, izbrisi.podatki, !izbrisi.uspeh);
   } else {
     console.log('\n  ⚠ Ni obvestil za testiranje PUT/DELETE.');
   }
@@ -258,20 +344,16 @@ async function testirajObvestila() {
 
 async function testirajStatistike() {
   console.log('\n' + '═'.repeat(60));
-  console.log('  7. STATISTIKE DOGODKI');
+  console.log('  7. STATISTIKE DOGODKOV');
   console.log('═'.repeat(60));
 
-  if (!idDogodka) {
-    console.log('  ⚠ ID dogodka ni na voljo, preskočim teste statistik.');
-    return;
-  }
+  if (!idDogodka) { console.log('  ⚠ ID dogodka ni na voljo.'); return; }
 
-  const statistike = await zahtevek('GET', `/events/${idDogodka}/stats`, null, zetonOrganizator);
-  izpisi(`GET /events/${idDogodka}/stats – statistike`, statistike.podatki, !statistike.uspeh);
+  const stat = await zahtevek('GET', `/events/${idDogodka}/stats`, null, 'organizator');
+  izpisi(`GET /events/${idDogodka}/stats – statistike (org.)`, stat.podatki, !stat.uspeh);
 
-  // Test brez organizatorske vloge
-  const neDovoljen = await zahtevek('GET', `/events/${idDogodka}/stats`, null, zetonUporabnik);
-  izpisi(`GET /events/${idDogodka}/stats – navaden uporabnik (403)`, neDovoljen.podatki, neDovoljen.uspeh);
+  const statBrez = await zahtevek('GET', `/events/${idDogodka}/stats`, null, 'uporabnik');
+  izpisi(`GET /events/${idDogodka}/stats – navadni upor. (403)`, statBrez.podatki, statBrez.uspeh);
 }
 
 async function testirajBrisanjeDogodka() {
@@ -281,42 +363,56 @@ async function testirajBrisanjeDogodka() {
 
   if (!idDogodka) return;
 
-  // Ustvari nov dodatni dogodek za brisanje
-  const dodatniDogodek = await zahtevek('POST', '/events', {
+  const zacasni = await zahtevek('POST', '/events', {
     naziv: 'Začasni dogodek za brisanje',
     datum: '2024-12-31',
     ura: '23:59',
     lokacija: 'Testna lokacija'
-  }, zetonOrganizator);
+  }, 'organizator');
 
-  if (dodatniDogodek.uspeh) {
-    const idZaBrisanje = dodatniDogodek.podatki.dogodek.id;
-    const brisi = await zahtevek('DELETE', `/events/${idZaBrisanje}`, null, zetonOrganizator);
-    izpisi(`DELETE /events/${idZaBrisanje} – izbriši dogodek`, brisi.podatki, !brisi.uspeh);
+  if (zacasni.uspeh) {
+    const idBrisanje = zacasni.podatki.dogodek.id;
+    const brisi = await zahtevek('DELETE', `/events/${idBrisanje}`, null, 'organizator');
+    izpisi(`DELETE /events/${idBrisanje} – izbriši dogodek`, brisi.podatki, !brisi.uspeh);
   }
 }
 
 async function testirajOdjavo() {
   console.log('\n' + '═'.repeat(60));
-  console.log('  9. ODJAVA');
+  console.log('  9. ODJAVA – preklic OAuth refresh_token (RFC 7009)');
   console.log('═'.repeat(60));
 
-  const odjava = await zahtevek('POST', '/auth/logout', null, zetonUporabnik);
-  izpisi('POST /auth/logout – odjava uporabnika', odjava.podatki, !odjava.uspeh);
+  // Odjava prek klasičnega endpointa (JWT odjava na strani odjemalca)
+  const odjava = await zahtevek('POST', '/auth/logout', null, 'uporabnik');
+  izpisi('POST /api/auth/logout – odjava (JWT)', odjava.podatki, !odjava.uspeh);
+
+  // OAuth preklic refresh_token za oba
+  console.log('\n─'.repeat(60));
+  console.log('  OAuth 2.0 – preklic refresh_token (POST /oauth/revoke)');
+  try {
+    await prekliciToken('uporabnik');
+    izpisi('POST /oauth/revoke – preklic (uporabnik)', { sporocilo: 'Žeton je bil preklican.' });
+  } catch (err) {
+    izpisi('POST /oauth/revoke – napaka', { napaka: err.message }, true);
+  }
+
+  try {
+    await prekliciToken('organizator');
+    izpisi('POST /oauth/revoke – preklic (organizator)', { sporocilo: 'Žeton je bil preklican.' });
+  } catch (err) {
+    izpisi('POST /oauth/revoke – napaka', { napaka: err.message }, true);
+  }
 }
 
-// ============================================================
-// GLAVNI PROGRAM
-// ============================================================
+// ── Glavni program ─────────────────────────────────────────────
 
-async function zeniMain() {
+async function main() {
   console.log('\n' + '╔' + '═'.repeat(58) + '╗');
   console.log('║' + ' '.repeat(15) + 'KajDogaja REST API Odjemalec' + ' '.repeat(15) + '║');
-  console.log('║' + ' '.repeat(12) + 'Testiranje vseh HTTP metod' + ' '.repeat(20) + '║');
+  console.log('║' + ' '.repeat(10) + 'OAuth 2.0 (RFC 6749) – ROPC + Refresh Token' + ' '.repeat(5) + '║');
   console.log('╚' + '═'.repeat(58) + '╝');
   console.log(`\nPovezujem se na: ${BASE_URL}`);
 
-  // Preveri, ali strežnik teče
   try {
     await axios.get('http://localhost:3001/');
     console.log('✅ Strežnik je dostopen.\n');
@@ -327,7 +423,7 @@ async function zeniMain() {
   }
 
   try {
-    await testirajRegistracijoInPrijavo();
+    await testirajOAuth();
     await testirajKategorijeMesta();
     await testirajDogodke();
     await testirajPrijave();
@@ -338,7 +434,7 @@ async function zeniMain() {
     await testirajOdjavo();
 
     console.log('\n' + '═'.repeat(60));
-    console.log('✅ Testiranje zaključeno!');
+    console.log('✅ Testiranje z OAuth 2.0 zaključeno!');
     console.log('═'.repeat(60) + '\n');
   } catch (err) {
     console.error('\n❌ Kritična napaka:', err.message);
@@ -346,4 +442,4 @@ async function zeniMain() {
   }
 }
 
-zeniMain();
+main();

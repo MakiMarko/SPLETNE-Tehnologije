@@ -8,6 +8,24 @@ db.pragma('foreign_keys = ON');
 
 // Ustvari tabele
 db.exec(`
+  CREATE TABLE IF NOT EXISTS oauth_odjemalci (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id TEXT UNIQUE NOT NULL,
+    client_secret TEXT NOT NULL,
+    naziv TEXT NOT NULL,
+    ustvarjen DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS oauth_refresh_tokeni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT UNIQUE NOT NULL,
+    uporabnik_id INTEGER NOT NULL REFERENCES uporabniki(id) ON DELETE CASCADE,
+    client_id TEXT NOT NULL,
+    preklican INTEGER DEFAULT 0,
+    potecel_dne DATETIME NOT NULL,
+    ustvarjen DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS uporabniki (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uporabnisko_ime TEXT UNIQUE NOT NULL,
@@ -66,6 +84,15 @@ db.exec(`
     ustvarjeno DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// Vstavi privzetega OAuth 2.0 odjemalca, če še ne obstaja
+const { OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET } = require('../config');
+const oauthStmt = db.prepare('SELECT COUNT(*) as st FROM oauth_odjemalci');
+if (oauthStmt.get().st === 0) {
+  db.prepare('INSERT INTO oauth_odjemalci (client_id, client_secret, naziv) VALUES (?, ?, ?)').run(
+    OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET, 'KajDogaja Namizna Aplikacija'
+  );
+}
 
 // Vstavi začetne podatke (kategorije in mesta), če še niso
 const katStmt = db.prepare('SELECT COUNT(*) as st FROM kategorije');
