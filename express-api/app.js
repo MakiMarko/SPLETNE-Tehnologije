@@ -16,8 +16,14 @@ const statsRoutes = require('./routes/stats');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS za PWA na vratih 3000
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -74,7 +80,9 @@ app.get('/', (req, res) => {
       obvestila: {
         'GET /api/notifications': 'Seznam obvestil (filter: prebrano=true/false)',
         'PUT /api/notifications/:id/read': 'Označi kot prebrano',
-        'DELETE /api/notifications/:id': 'Izbriši obvestilo'
+        'DELETE /api/notifications/:id': 'Izbriši obvestilo',
+        'POST /api/push/subscribe': 'Shrani push subscription',
+        'POST /api/push/send': 'Pošlji push notification (test)'
       },
       statistike: {
         'GET /api/events/:id/stats': 'Statistike prijav za dogodek (samo organizator lastnik)'

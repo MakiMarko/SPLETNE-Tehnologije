@@ -1,1 +1,8 @@
 .errors.txt
+node_modules/
+pwa/*.png
+!pwa/icon-192.png
+!pwa/icon-512.png
+*.log
+.DS_Store
+Thumbs.db

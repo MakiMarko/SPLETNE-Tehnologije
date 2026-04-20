@@ -1,0 +1,16 @@
+{
+  "name": "kajdogaja-pwa",
+  "version": "1.0.0",
+  "description": "PWA strežnik za KajDogaja",
+  "scripts": {
+    "start:pwa": "node pwa-server.js",
+    "start:api": "cd express-api && node app.js"
+  },
+  "devDependencies": {
+    "canvas": "^3.2.3"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

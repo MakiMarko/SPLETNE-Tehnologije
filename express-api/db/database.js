@@ -83,6 +83,15 @@ db.exec(`
     prebrano INTEGER DEFAULT 0,
     ustvarjeno DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uporabnik_id INTEGER NOT NULL REFERENCES uporabniki(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL,
+    keys TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(uporabnik_id, endpoint)
+  );
 `);
 
 // Vstavi privzetega OAuth 2.0 odjemalca, če še ne obstaja

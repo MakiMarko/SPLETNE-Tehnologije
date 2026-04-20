@@ -1,0 +1,27 @@
+{
+  "name": "KajDogaja - Lokalni Dogodki",
+  "short_name": "KajDogaja",
+  "description": "PWA aplikacija za pregledovanje in urejanje lokalnih dogodkov",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90d9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["events", "social", "lifestyle"],
+  "lang": "sl-SI",
+  "dir": "ltr"
+}

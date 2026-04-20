@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KajDogaja PWA - Pregledovanje in urejanje lokalnih dogodkov">
+  <meta name="theme-color" content="#4a90d9">
+  <title>KajDogaja - Lokalni Dogodki</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-content">
+        <h1 class="logo">KajDogaja</h1>
+        <div class="header-actions">
+          <button id="btnNotifications" class="btn-icon" title="Obvestila (Ctrl+N)">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+            <span id="notificationBadge" class="badge hidden">0</span>
+          </button>
+          <button id="btnUser" class="btn-icon" title="Profil">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Iskanje dogodkov... (Ctrl+F)" class="search-input">
+        <select id="filterCategory" class="filter-select">
+          <option value="">Vse kategorije</option>
+          <option value="šport">Šport</option>
+          <option value="kultura">Kultura</option>
+          <option value="glasba">Glasba</option>
+          <option value="festival">Festival</option>
+          <option value="izobraževanje">Izobraževanje</option>
+          <option value="zabava">Zabava</option>
+          <option value="narava">Narava</option>
+          <option value="gastronomija">Gastronomija</option>
+        </select>
+        <button id="btnAddEvent" class="btn-primary" title="Nov dogodek (Ctrl+N)">+ Nov dogodek</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div id="connectionStatus" class="connection-status offline hidden">
+        <span>Ni povezave. Podatki so iz lokalne shrambe.</span>
+      </div>
+      <div id="syncStatus" class="sync-status hidden">
+        <span>Poteka sinhronizacija...</span>
+      </div>
+      <div id="eventsList" class="events-list"></div>
+      <div id="loadingSpinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+        <p>Nalaganje...</p>
+      </div>
+      <div id="emptyState" class="empty-state hidden">
+        <p>Ni dogodkov.</p>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 KajDogaja - Lokalni Dogodki</p>
+    </footer>
+  </div>
+
+  <div id="modalContainer" class="modal-container hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Naslov</h2>
+        <button id="btnCloseModal" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <template id="authModalTemplate">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Prijava</button>
+      <button class="auth-tab" data-tab="register">Registracija</button>
+    </div>
+    <form id="authForm" class="auth-form">
+      <div class="form-group">
+        <label for="username">Uporabniško ime</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Geslo</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div id="authFields" class="form-group hidden">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email">
+      </div>
+      <button type="submit" id="authSubmit" class="btn-primary">Prijava</button>
+    </form>
+    <div id="authError" class="error-message hidden"></div>
+  </template>
+
+  <template id="eventModalTemplate">
+    <form id="eventForm" class="event-form">
+      <div class="form-group">
+        <label for="eventTitle">Naziv *</label>
+        <input type="text" id="eventTitle" name="naziv" required>
+      </div>
+      <div class="form-group">
+        <label for="eventDescription">Opis</label>
+        <textarea id="eventDescription" name="opis" rows="3"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventDate">Datum *</label>
+          <input type="date" id="eventDate" name="datum" required>
+        </div>
+        <div class="form-group">
+          <label for="eventTime">Ura *</label>
+          <input type="time" id="eventTime" name="ura" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventLocation">Lokacija *</label>
+          <input type="text" id="eventLocation" name="lokacija" required>
+        </div>
+        <div class="form-group">
+          <label for="eventCapacity">Kapaciteta</label>
+          <input type="number" id="eventCapacity" name="kapaciteta" min="0" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventCategory">Kategorije</label>
+          <select id="eventCategory" name="kategorija_id">
+            <option value="">Izberi kategorijo</option>
+            <option value="1">Šport</option>
+            <option value="2">Kultura</option>
+            <option value="3">Glasba</option>
+            <option value="4">Festival</option>
+            <option value="5">Izobraževanje</option>
+            <option value="6">Zabava</option>
+            <option value="7">Narava</option>
+            <option value="8">Gastronomija</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="eventCity">Mesto</label>
+          <select id="eventCity" name="mesto_id">
+            <option value="">Izberi mesto</option>
+            <option value="1">Ljubljana</option>
+            <option value="2">Maribor</option>
+            <option value="3">Celje</option>
+            <option value="4">Koper</option>
+            <option value="5">Kranj</option>
+            <option value="6">Novo Mesto</option>
+            <option value="7">Velenje</option>
+            <option value="8">Murska Sobota</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="eventLat">Koordinate (lat, lng)</label>
+        <div class="form-row">
+          <input type="number" id="eventLat" name="koordinate_lat" step="any" placeholder="Latitude">
+          <input type="number" id="eventLng" name="koordinate_lng" step="any" placeholder="Longitude">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="btnDeleteEvent" class="btn-danger hidden">Izbriši</button>
+        <button type="button" id="btnCancelEvent" class="btn-secondary">Prekliči</button>
+        <button type="submit" id="btnSaveEvent" class="btn-primary">Shrani (Ctrl+S)</button>
+      </div>
+    </form>
+    <div id="eventError" class="error-message hidden"></div>
+  </template>
+
+  <template id="notificationsModalTemplate">
+    <div class="notifications-list" id="notificationsList">
+      <div class="empty-state"><p>Ni obvestil.</p></div>
+    </div>
+  </template>
+
+  <template id="eventCardTemplate">
+    <article class="event-card">
+      <div class="event-image">
+        <img data-src="" alt="" class="lazy-image">
+        <span class="event-category"></span>
+      </div>
+      <div class="event-content">
+        <h3 class="event-title"></h3>
+        <p class="event-meta">
+          <span class="event-date"></span>
+          <span class="event-location"></span>
+        </p>
+        <p class="event-description"></p>
+        <div class="event-footer">
+          <span class="event-organizer"></span>
+          <span class="event-spots"></span>
+        </div>
+      </div>
+      <div class="event-actions">
+        <button class="btn-edit" title="Uredi">Uredi</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
