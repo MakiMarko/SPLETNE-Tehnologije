@@ -11,6 +11,7 @@ const eventsRoutes = require('./routes/events');
 const registrationsRoutes = require('./routes/registrations');
 const meRoutes = require('./routes/me');
 const notificationsRoutes = require('./routes/notifications');
+const pushRoutes = require('./routes/push');
 const referenceRoutes = require('./routes/reference');
 const statsRoutes = require('./routes/stats');
 
@@ -42,6 +43,7 @@ app.use('/api/events/:id/registrations', registrationsRoutes);
 app.use('/api/events/:id/stats', statsRoutes);
 app.use('/api/me', meRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api', referenceRoutes);
 
 // Korenski endpoint z informacijami o API-ju

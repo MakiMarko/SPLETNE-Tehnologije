@@ -6,6 +6,12 @@ let db;
 let jwtToken = localStorage.getItem('jwt_token');
 let currentUser = null;
 
+const updateAuthUI = () => {
+  const btnLogout = document.getElementById('btnLogout');
+  if (!btnLogout) return;
+  btnLogout.classList.toggle('hidden', !jwtToken);
+};
+
 const apiFetch = async (url, options = {}) => {
   const headers = {
     'Content-Type': 'application/json',
@@ -122,6 +128,7 @@ const initApp = async () => {
 
   await setupServiceWorker();
   setupEventListeners();
+  updateAuthUI();
   setupKeyboardShortcuts();
   setupLazyLoading();
   setupOnlineSync();
@@ -156,6 +163,11 @@ const setupEventListeners = () => {
   });
   document.getElementById('btnNotifications').addEventListener('click', () => openNotificationsModal());
   document.getElementById('btnUser').addEventListener('click', () => openAuthModal());
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    logout();
+    showToast('Uspešno ste odjavljeni.', 'success');
+    await loadEvents();
+  });
   
   document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
   document.getElementById('filterCategory').addEventListener('change', handleSearch);
@@ -485,7 +497,9 @@ const openAuthModal = () => {
   
   const form = document.getElementById('authForm');
   const tabs = document.querySelectorAll('.auth-tab');
-  const authFields = document.getElementById('authFields');
+  const usernameField = document.getElementById('usernameField');
+  const usernameInput = form.username;
+  const emailInput = form.email;
   const submitBtn = document.getElementById('authSubmit');
   
   let isRegister = false;
@@ -495,7 +509,9 @@ const openAuthModal = () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       isRegister = tab.dataset.tab === 'register';
-      authFields.classList.toggle('hidden', !isRegister);
+      usernameField.classList.toggle('hidden', !isRegister);
+      usernameInput.required = isRegister;
+      emailInput.required = true;
       submitBtn.textContent = isRegister ? 'Registracija' : 'Prijava';
     });
   });
@@ -520,11 +536,12 @@ const openAuthModal = () => {
       } else {
         const data = await apiFetch('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ uporabnisko_ime: username, geslo: password })
+          body: JSON.stringify({ email, geslo: password })
         });
-        jwtToken = data.access_token;
+        jwtToken = data.zeton;
         localStorage.setItem('jwt_token', jwtToken);
-        currentUser = username;
+        currentUser = data?.uporabnik?.uporabnisko_ime || email;
+        updateAuthUI();
         showToast('Uspešna prijava!', 'success');
         closeModal();
         await loadEvents();
@@ -598,6 +615,7 @@ const logout = () => {
   jwtToken = null;
   currentUser = null;
   localStorage.removeItem('jwt_token');
+  updateAuthUI();
 };
 
 const checkAuth = async () => {
